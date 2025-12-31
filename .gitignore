@@ -6,4 +6,4 @@
 .vscode/
 
 # Binaries
-bin
+dist

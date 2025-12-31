@@ -25,56 +25,17 @@ builds:
     goarm:
       - "7"
 
-dockers:
-  - id: exporter-amd64
-    goos: linux
-    goarch: amd64
-    use: buildx
+dockers_v2:
+  - images:
+      - ghcr.io/salex-org/ikea-dirigera-exporter
+    tags:
+      - v{{ .Version }}
+      - latest
     dockerfile: prod.Dockerfile
-    image_templates:
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-amd64
-    build_flag_templates:
-      - "--platform=linux/amd64"
-    extra_files:
-      - exporter
-
-  - id: exporter-arm64
-    goos: linux
-    goarch: arm64
-    use: buildx
-    dockerfile: prod.Dockerfile
-    image_templates:
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm64
-    build_flag_templates:
-      - "--platform=linux/arm64"
-    extra_files:
-      - exporter
-
-  - id: exporter-arm-v7
-    goos: linux
-    goarch: arm
-    goarm: "7"
-    use: buildx
-    dockerfile: prod.Dockerfile
-    image_templates:
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm-v7
-    build_flag_templates:
-      - "--platform=linux/arm/v7"
-    extra_files:
-      - exporter
-
-docker_manifests:
-  - name_template: ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}
-    image_templates:
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-amd64
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm64
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm-v7
-
-  - name_template: ghcr.io/salex-org/ikea-dirigera-exporter:latest
-    image_templates:
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-amd64
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm64
-      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm-v7
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      - linux/arm/v7
 
 archives:
   - formats: [ 'tar.gz' ]
