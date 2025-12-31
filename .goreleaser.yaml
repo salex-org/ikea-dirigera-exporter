@@ -1,0 +1,94 @@
+version: 2
+project_name: ikea-dirigera-exporter
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: ikea-dirigera-exporter
+    main: cmd/main.go
+    binary: exporter
+    ldflags:
+      - -s -w
+      - -X github.com/salex-org/ikea-dirigera-exporter/cmd.version={{ .Version }}
+      - -X github.com/salex-org/ikea-dirigera-exporter/cmd.commit={{ .Commit }}
+      - -X github.com/salex-org/ikea-dirigera-exporter/cmd.date={{ .Date }}
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+      - arm
+    goarm:
+      - "7"
+
+dockers:
+  - id: exporter-amd64
+    goos: linux
+    goarch: amd64
+    use: buildx
+    dockerfile: prod.Dockerfile
+    image_templates:
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+    extra_files:
+      - exporter
+
+  - id: exporter-arm64
+    goos: linux
+    goarch: arm64
+    use: buildx
+    dockerfile: prod.Dockerfile
+    image_templates:
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm64
+    build_flag_templates:
+      - "--platform=linux/arm64"
+    extra_files:
+      - exporter
+
+  - id: exporter-arm-v7
+    goos: linux
+    goarch: arm
+    goarm: "7"
+    use: buildx
+    dockerfile: prod.Dockerfile
+    image_templates:
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm-v7
+    build_flag_templates:
+      - "--platform=linux/arm/v7"
+    extra_files:
+      - exporter
+
+docker_manifests:
+  - name_template: ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}
+    image_templates:
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-amd64
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm64
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm-v7
+
+  - name_template: ghcr.io/salex-org/ikea-dirigera-exporter:latest
+    image_templates:
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-amd64
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm64
+      - ghcr.io/salex-org/ikea-dirigera-exporter:{{ .Version }}-arm-v7
+
+archives:
+  - formats: [ 'tar.gz' ]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: salex-org
+    name: ikea-dirigera-exporter
+  draft: false
+  prerelease: false
+
+snapshot:
+  version_template: "v{{ incpatch .Version }}-snapshot"
