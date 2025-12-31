@@ -29,9 +29,9 @@ dockers_v2:
   - images:
       - ghcr.io/salex-org/ikea-dirigera-exporter
     tags:
-      - v{{ .Version }}
-      - latest
-    dockerfile: prod.Dockerfile
+      - "{{ .Version }}"
+      - "latest"
+    dockerfile: Dockerfile
     platforms:
       - linux/amd64
       - linux/arm64
