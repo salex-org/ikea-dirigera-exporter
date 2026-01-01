@@ -12,8 +12,6 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/salex-org/ikea-dirigera-exporter/cmd.version={{ .Version }}
-      - -X github.com/salex-org/ikea-dirigera-exporter/cmd.commit={{ .Commit }}
-      - -X github.com/salex-org/ikea-dirigera-exporter/cmd.date={{ .Date }}
     env:
       - CGO_ENABLED=0
     goos:

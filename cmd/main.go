@@ -1,31 +1,116 @@
 package main
 
 import (
-	"net/http"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"context"
+	_ "embed"
+	"fmt"
+	"ikea-dirigera-exporter/internal/dirigera"
+	"ikea-dirigera-exporter/internal/webserver"
+	"log"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+	"time"
 )
 
 var (
+	dirigeraClient dirigera.DirigeraClient
+	webServer      webserver.Server
+
 	version = "dev"
-	commit  = "none"
-	date    = "unknown"
+
+	//go:embed assets/ascii.art
+	asciiArt string
 )
 
 func main() {
-	powerUsage := prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "ikea_outlet_power_watts",
-		Help: "Leistung die durch eine Steckdose im IKEA Smart-Home-System geht.",
-	})
+	// Startup function
+	fmt.Printf("%s\n\n", fmt.Sprintf(asciiArt, version))
+	err := startup()
+	if err != nil {
+		log.Fatalf("Error during startup: %v\n", err)
+	}
 
-	// 2. Metrik registrieren
-	prometheus.MustRegister(powerUsage)
+	// Notification context for reacting on process termination - used by shutdown function
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	// 3. Wert aktualisieren (Beispielhaft)
-	powerUsage.Set(42)
+	// Waiting group used to await finishing the shutdown process when stopping
+	var wait sync.WaitGroup
 
-	// 4. HTTP-Endpunkt bereitstellen
-	http.Handle("/metrics", promhttp.Handler())
-	http.ListenAndServe(":9100", nil)
+	// Loop function for webserver
+	wait.Add(1)
+	go func() {
+		defer wait.Done()
+		fmt.Printf("Web server started\n")
+		_ = webServer.Start()
+	}()
+
+	// Loop function for event listening
+	wait.Add(1)
+	go func() {
+		defer wait.Done()
+		fmt.Printf("IKEA DIRIGERA client started\n")
+		_ = dirigeraClient.Start()
+	}()
+
+	// Shutdown function waiting for the SIGTERM notification to stop event listening
+	wait.Add(1)
+	go func() {
+		defer wait.Done()
+		<-ctx.Done()
+		fmt.Printf("\n\U0001F6D1 Shutdown down started...\n")
+		shutdown()
+	}()
+
+	wait.Wait()
+	fmt.Printf("\U0001F3C1 Shutdown finished\n")
+	os.Exit(0)
+}
+
+func startup() error {
+	var err error
+	time.Local, err = time.LoadLocation("CET")
+	if err != nil {
+		return fmt.Errorf("error pinning location: %w", err)
+	} else {
+		fmt.Printf("Timezone CET loaded\n")
+	}
+
+	webServer = webserver.NewServer(healthCheck)
+	fmt.Printf("Web server created\n")
+
+	dirigeraClient, err = dirigera.NewDirigeraClient()
+	if err != nil {
+		return fmt.Errorf("error creationg IKEA DIRIGERA client: %w", err)
+	} else {
+		fmt.Printf("IKEA DIRIGERA client created\n")
+	}
+
+	return nil
+}
+
+func shutdown() {
+	err := dirigeraClient.Shutdown()
+	if err != nil {
+		fmt.Printf("Error stopping event listening: %v\n", err)
+	} else {
+		fmt.Printf("Event listening stopped\n")
+	}
+
+	err = webServer.Shutdown()
+	if err != nil {
+		fmt.Printf("Error stopping web server: %v\n", err)
+	} else {
+		fmt.Printf("Web server stopped\n")
+	}
+}
+
+func healthCheck() map[string]error {
+	errors := make(map[string]error)
+	if err := dirigeraClient.Health(); err != nil {
+		errors["IKEA DIRIGERA Client"] = err
+	}
+	return errors
 }
