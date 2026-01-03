@@ -23,7 +23,7 @@ func newOpenCloseSensorMetric() dirigeraMetric {
 	return metric
 }
 
-func (m *openCloseSensorMetric) update(device client.Device) {
+func (m *openCloseSensorMetric) update(device client.Device, labels prometheus.Labels) {
 	isOpen, hasIsOpen := device.Attributes["isOpen"].(bool)
 	var value float64 = 0
 	if hasIsOpen {
@@ -31,5 +31,5 @@ func (m *openCloseSensorMetric) update(device client.Device) {
 			value = 1
 		}
 	}
-	m.openCloseMetric.With(createLabels(device)).Set(value)
+	m.openCloseMetric.With(labels).Set(value)
 }

@@ -4,7 +4,7 @@ go 1.25
 
 require (
 	github.com/prometheus/client_golang v1.23.2
-	github.com/salex-org/ikea-dirigera-client v1.0.1
+	github.com/salex-org/ikea-dirigera-client v1.0.2
 )
 
 require (

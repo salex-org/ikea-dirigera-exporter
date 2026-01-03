@@ -84,11 +84,7 @@ func startup() error {
 	if err != nil {
 		return fmt.Errorf("error creationg IKEA dirigera client: %w", err)
 	}
-	if name, err := dirigeraClient.GetHubName(); err != nil {
-		return fmt.Errorf("error getting IKEA dirigera hub name: %w", err)
-	} else {
-		fmt.Printf("IKEA dirigera client created for hub %s\n", name)
-	}
+	fmt.Printf("IKEA dirigera client created for hub %s\n", dirigeraClient.GetHubName())
 
 	return nil
 }

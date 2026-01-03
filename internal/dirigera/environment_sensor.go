@@ -31,11 +31,11 @@ func newEnvironmentSensorMetric() dirigeraMetric {
 	return metric
 }
 
-func (m *environmentSensorMetric) update(device client.Device) {
+func (m *environmentSensorMetric) update(device client.Device, labels prometheus.Labels) {
 	if temperature, hasTemperature := device.Attributes["currentTemperature"].(float64); hasTemperature {
-		m.temperatureMetric.With(createLabels(device)).Set(temperature)
+		m.temperatureMetric.With(labels).Set(temperature)
 	}
 	if humidity, hasHumidity := device.Attributes["currentRH"].(float64); hasHumidity {
-		m.humidityMetric.With(createLabels(device)).Set(humidity)
+		m.humidityMetric.With(labels).Set(humidity)
 	}
 }

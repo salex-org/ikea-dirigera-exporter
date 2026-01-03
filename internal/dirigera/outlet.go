@@ -47,21 +47,21 @@ func newOutletMetric() dirigeraMetric {
 	return metric
 }
 
-func (m *outletMetric) update(device client.Device) {
+func (m *outletMetric) update(device client.Device, labels prometheus.Labels) {
 	if isOn, hasIsOn := device.Attributes["isOn"].(bool); hasIsOn {
 		var value float64 = 0
 		if isOn {
 			value = 1
 		}
-		m.isOnMetric.With(createLabels(device)).Set(value)
+		m.isOnMetric.With(labels).Set(value)
 	}
 	if voltage, hasVoltage := device.Attributes["currentVoltage"].(float64); hasVoltage {
-		m.currentVoltageMetric.With(createLabels(device)).Set(voltage)
+		m.currentVoltageMetric.With(labels).Set(voltage)
 	}
 	if amps, hasAmps := device.Attributes["currentAmps"].(float64); hasAmps {
-		m.currentAmpsMetric.With(createLabels(device)).Set(amps)
+		m.currentAmpsMetric.With(labels).Set(amps)
 	}
 	if power, hasPower := device.Attributes["currentActivePower"].(float64); hasPower {
-		m.currentActivePowerMetric.With(createLabels(device)).Set(power)
+		m.currentActivePowerMetric.With(labels).Set(power)
 	}
 }
