@@ -14,6 +14,7 @@ type Client interface {
 	Start() error
 	Shutdown() error
 	Health() error
+	GetHubName() (string, error)
 }
 
 type dirigeraClient struct {
@@ -72,6 +73,19 @@ func (d *dirigeraClient) Shutdown() error {
 
 func (d *dirigeraClient) Health() error {
 	return d.hub.GetEventLoopState()
+}
+
+func (d *dirigeraClient) GetHubName() (string, error) {
+	status, err := d.hub.GetHubStatus()
+	if err != nil {
+		return "", fmt.Errorf("error getting hub status: %w", err)
+	}
+
+	if name, hasName := status.Attributes["customName"]; hasName {
+		return name.(string), nil
+	}
+
+	return "unknown", nil
 }
 
 func (d *dirigeraClient) updateMetric(device client.Device) {

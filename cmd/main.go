@@ -74,9 +74,8 @@ func startup() error {
 	time.Local, err = time.LoadLocation("CET")
 	if err != nil {
 		return fmt.Errorf("error pinning location: %w", err)
-	} else {
-		fmt.Printf("Timezone CET loaded\n")
 	}
+	fmt.Printf("Timezone CET loaded\n")
 
 	webServer = webserver.NewServer(healthCheck)
 	fmt.Printf("Web server created\n")
@@ -84,8 +83,11 @@ func startup() error {
 	dirigeraClient, err = dirigera.NewClient()
 	if err != nil {
 		return fmt.Errorf("error creationg IKEA dirigera client: %w", err)
+	}
+	if name, err := dirigeraClient.GetHubName(); err != nil {
+		return fmt.Errorf("error getting IKEA dirigera hub name: %w", err)
 	} else {
-		fmt.Printf("IKEA dirigera client created\n")
+		fmt.Printf("IKEA dirigera client created for hub %s\n", name)
 	}
 
 	return nil
