@@ -20,7 +20,7 @@ type Client interface {
 type dirigeraClient struct {
 	hub               client.Client
 	labelManager      *labelManager
-	additionalMetrics map[string]map[string]dirigeraMetric
+	additionalMetrics map[string]dirigeraMetric
 	baseMetrics       dirigeraMetric
 }
 
@@ -47,19 +47,16 @@ func NewClient() (Client, error) {
 	if !hasHubName {
 		return nil, fmt.Errorf("error reading hub name: no custom name defined")
 	}
+	hubID, _ := normalizeID(hubStatus.ID)
 
 	// Register metrics
 	newClient.baseMetrics = newBaseDeviceMetric()
-	newClient.additionalMetrics = make(map[string]map[string]dirigeraMetric)
-	newClient.additionalMetrics["sensor"] = make(map[string]dirigeraMetric)
-	newClient.additionalMetrics["sensor"]["openCloseSensor"] = newOpenCloseSensorMetric()
-	newClient.additionalMetrics["sensor"]["environmentSensor"] = newEnvironmentSensorMetric()
-	newClient.additionalMetrics["outlet"] = make(map[string]dirigeraMetric)
-	newClient.additionalMetrics["outlet"]["outlet"] = newOutletMetric()
-	newClient.additionalMetrics["controller"] = make(map[string]dirigeraMetric)
-	newClient.additionalMetrics["controller"]["lightController"] = newLightControllerMetric()
-	newClient.additionalMetrics["light"] = make(map[string]dirigeraMetric)
-	newClient.additionalMetrics["light"]["light"] = newLightMetric()
+	newClient.additionalMetrics = make(map[string]dirigeraMetric)
+	newClient.additionalMetrics["openCloseSensor"] = newOpenCloseSensorMetric()
+	newClient.additionalMetrics["environmentSensor"] = newEnvironmentSensorMetric()
+	newClient.additionalMetrics["outlet"] = newOutletMetric()
+	newClient.additionalMetrics["lightController"] = newLightControllerMetric()
+	newClient.additionalMetrics["light"] = newLightMetric()
 
 	// Register event handler
 	newClient.hub.RegisterEventHandler(newClient.updateMetricFromEvent, "deviceStateChanged")
@@ -69,7 +66,7 @@ func NewClient() (Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error loading devices: %w", err)
 	}
-	newClient.labelManager = createLabelManager(hubName, devices)
+	newClient.labelManager = createLabelManager(hubName, hubID, devices)
 	for _, device := range devices {
 		newClient.updateMetric(*device, nil)
 	}
@@ -94,21 +91,19 @@ func (d *dirigeraClient) GetHubName() string {
 }
 
 func (d *dirigeraClient) updateMetric(device client.Device, event *client.Event) {
-	if device.Type == "gateway" {
+	if device.DetailedType == "gateway" {
 		return // skipping gateway itself
 	}
 
-	if detailTypes, typeFound := d.additionalMetrics[device.Type]; typeFound {
-		if metric, metricFound := detailTypes[device.DetailedType]; metricFound {
-			labels, err := d.labelManager.createLabels(device)
-			if err != nil {
-				fmt.Printf("Warning: Could not create labels - skipping metric update: %v\n", err)
-				return
-			}
-			d.baseMetrics.update(device, labels)
-			metric.update(device, labels)
+	if metric, metricFound := d.additionalMetrics[device.DetailedType]; metricFound {
+		labels, err := d.labelManager.createLabels(device)
+		if err != nil {
+			fmt.Printf("Warning: Could not create labels - skipping metric update: %v\n", err)
 			return
 		}
+		d.baseMetrics.update(device, labels)
+		metric.update(device, labels)
+		return
 	}
 	fmt.Printf("Warning: No metric registered for %s:%s\n", device.Type, device.DetailedType)
 	if event != nil {
@@ -169,29 +164,32 @@ func (m *baseDeviceMetric) update(device client.Device, labels prometheus.Labels
 	}
 }
 
-var metricLabelNames = []string{"hub", "device", "room", "type", "device_type"}
+var metricLabelNames = []string{"hub_id", "hub_name", "room_id", "room_name", "device_id", "device_name", "device_type"}
 
 type deviceLabels struct {
 	deviceName string
 	roomName   string
+	roomID     string
 }
 
 type labelManager struct {
 	hubName      string
+	hubID        string
 	deviceLabels map[string]deviceLabels
 }
 
-func createLabelManager(hubName string, devices []*client.Device) *labelManager {
+func createLabelManager(hubName, hubID string, devices []*client.Device) *labelManager {
 	newLabelManager := &labelManager{
 		hubName:      hubName,
+		hubID:        hubID,
 		deviceLabels: make(map[string]deviceLabels),
 	}
 
 	for _, device := range devices {
-		if device.Type == "gateway" {
+		if device.DetailedType == "gateway" {
 			continue // skipping gateway itself
 		}
-		deviceID, updateCache := normalizeDeviceID(device.ID)
+		deviceID, updateCache := normalizeID(device.ID)
 		if updateCache {
 			newDeviceName, hasDeviceName := device.Attributes["customName"]
 			if !hasDeviceName {
@@ -212,7 +210,7 @@ func createLabelManager(hubName string, devices []*client.Device) *labelManager 
 }
 
 func (lm *labelManager) createLabels(device client.Device) (prometheus.Labels, error) {
-	deviceID, updateCache := normalizeDeviceID(device.ID)
+	deviceID, updateCache := normalizeID(device.ID)
 	cachedLabels, hasCachedLabels := lm.deviceLabels[deviceID]
 
 	if !hasCachedLabels {
@@ -229,28 +227,34 @@ func (lm *labelManager) createLabels(device client.Device) (prometheus.Labels, e
 			cachedLabels.roomName = device.Room.Name
 			updated = true
 		}
+		if device.Room.ID != "" && device.Room.ID != cachedLabels.roomID {
+			cachedLabels.roomID, _ = normalizeID(device.Room.ID)
+			updated = true
+		}
 		if updated {
 			lm.deviceLabels[deviceID] = cachedLabels
 		}
 	}
 
 	return prometheus.Labels{
-		"hub":         lm.hubName,
-		"device":      cachedLabels.deviceName,
-		"room":        cachedLabels.roomName,
-		"type":        device.Type,
+		"hub_id":      lm.hubID,
+		"hub_name":    lm.hubName,
+		"room_id":     cachedLabels.roomID,
+		"room_name":   cachedLabels.roomName,
+		"device_id":   deviceID,
+		"device_name": cachedLabels.deviceName,
 		"device_type": device.DetailedType,
 	}, nil
 }
 
-func normalizeDeviceID(deviceID string) (string, bool) {
-	idx := strings.LastIndex(deviceID, "_")
+func normalizeID(id string) (string, bool) {
+	idx := strings.LastIndex(id, "_")
 	if idx == -1 {
-		return deviceID, true
+		return id, true
 	}
 
-	base := deviceID[:idx]
-	suffix := deviceID[idx+1:]
+	base := id[:idx]
+	suffix := id[idx+1:]
 
 	if suffix == "1" {
 		return base, true
