@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	dirigeraClient dirigera.Client
+	dirigeraClient dirigera.DirigeraClient
 	webServer      webserver.Server
 
 	version = "dev"
@@ -80,7 +80,7 @@ func startup() error {
 	webServer = webserver.NewServer(healthCheck)
 	fmt.Printf("Web server created\n")
 
-	dirigeraClient, err = dirigera.NewClient()
+	dirigeraClient, err = dirigera.NewDirigeraClient()
 	if err != nil {
 		return fmt.Errorf("error creationg IKEA dirigera client: %w", err)
 	}
