@@ -70,7 +70,7 @@ func NewDirigeraClient() (DirigeraClient, error) {
 		return nil, fmt.Errorf("hub %s has no customName", hubStatus.ID)
 	}
 	newClient.hubName = hubName.(string)
-	newClient.hubID = hubStatus.ID
+	newClient.hubID, _ = normalizeID(hubStatus.ID)
 
 	// Register event handler
 	newClient.hub.RegisterEventHandler(newClient.updateMetricFromEvent, "deviceStateChanged")
@@ -107,15 +107,16 @@ func (d *dirigeraClient) updateMetric(device client.Device, event *client.Event)
 	if device.DetailedType == "gateway" {
 		return // skipping gateway itself
 	}
+	deviceID, _ := normalizeID(device.ID)
 
-	cachedDevice, err := d.readFromCache(device)
+	cachedDevice, err := d.readFromCache(device, deviceID)
 	if err != nil {
 		fmt.Printf("Warning: Could not read from cache: %v\n", err)
 		return
 	}
 
 	if metric, metricFound := d.additionalMetrics[cachedDevice.deviceType]; metricFound {
-		labels := d.createLabels(cachedDevice, device.ID)
+		labels := d.createLabels(cachedDevice, deviceID)
 		d.baseMetrics.update(device, labels)
 		metric.update(device, labels)
 		return
@@ -130,8 +131,7 @@ func (d *dirigeraClient) updateMetricFromEvent(event client.Event) {
 	d.updateMetric(event.Device, &event)
 }
 
-func (d *dirigeraClient) readFromCache(device client.Device) (*dirigeraDevice, error) {
-	deviceID, _ := normalizeID(device.ID)
+func (d *dirigeraClient) readFromCache(device client.Device, deviceID string) (*dirigeraDevice, error) {
 	cachedDevice, isCached := d.cache[deviceID]
 
 	if !isCached {
