@@ -1,4 +1,4 @@
-module ikea-dirigera-exporter
+module github.com/salex-org/ikea-dirigera-exporter
 
 go 1.25
 
