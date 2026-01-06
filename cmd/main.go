@@ -4,14 +4,15 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"ikea-dirigera-exporter/internal/dirigera"
-	"ikea-dirigera-exporter/internal/webserver"
 	"log"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/salex-org/ikea-dirigera-exporter/internal/dirigera"
+	"github.com/salex-org/ikea-dirigera-exporter/internal/webserver"
 )
 
 var (

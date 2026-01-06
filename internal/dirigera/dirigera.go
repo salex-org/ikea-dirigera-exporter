@@ -2,9 +2,10 @@ package dirigera
 
 import (
 	"fmt"
-	"ikea-dirigera-exporter/internal/util"
 	"strconv"
 	"strings"
+
+	"github.com/salex-org/ikea-dirigera-exporter/internal/util"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/salex-org/ikea-dirigera-client/pkg/client"
