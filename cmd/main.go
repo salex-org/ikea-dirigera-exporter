@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/salex-org/ikea-dirigera-exporter/internal/dirigera"
+	"github.com/salex-org/ikea-dirigera-exporter/internal/util"
 	"github.com/salex-org/ikea-dirigera-exporter/internal/webserver"
 )
 
@@ -19,15 +20,13 @@ var (
 	dirigeraClient dirigera.DirigeraClient
 	webServer      webserver.Server
 
-	Version = "dev"
-
 	//go:embed assets/ascii.art
 	asciiArt string
 )
 
 func main() {
 	// Startup function
-	fmt.Printf("%s\n\n", fmt.Sprintf(asciiArt, Version))
+	fmt.Printf("%s\n\n", fmt.Sprintf(asciiArt, util.Version))
 	err := startup()
 	if err != nil {
 		log.Fatalf("Error during startup: %v\n", err)

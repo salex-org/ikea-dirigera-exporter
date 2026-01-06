@@ -5,6 +5,8 @@ import (
 	"os"
 )
 
+var Version = "dev"
+
 func ReadEnvVar(name string) string {
 	value, present := os.LookupEnv(name)
 	if !present {
