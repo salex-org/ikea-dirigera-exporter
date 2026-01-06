@@ -19,7 +19,7 @@ var (
 	dirigeraClient dirigera.DirigeraClient
 	webServer      webserver.Server
 
-	version = "dev"
+	Version = "dev"
 
 	//go:embed assets/ascii.art
 	asciiArt string
@@ -27,7 +27,7 @@ var (
 
 func main() {
 	// Startup function
-	fmt.Printf("%s\n\n", fmt.Sprintf(asciiArt, version))
+	fmt.Printf("%s\n\n", fmt.Sprintf(asciiArt, Version))
 	err := startup()
 	if err != nil {
 		log.Fatalf("Error during startup: %v\n", err)
